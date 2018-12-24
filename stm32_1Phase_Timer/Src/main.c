@@ -129,7 +129,7 @@ if(htim->Instance == htim17.Instance)
  }
  case 4 :
  {
-	 Display_event(9,10,11,12,3);
+	 Display_event(9,10,11,12,Blink_3_Digit);
 	 break;
 
  }
