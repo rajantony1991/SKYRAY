@@ -21,23 +21,23 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   ALLOC
   8 .ARM.attributes 00000028  00000000  00000000  00020048  2**0
                   CONTENTS, READONLY
-  9 .debug_info   000164b7  00000000  00000000  00020070  2**0
+  9 .debug_info   00016498  00000000  00000000  00020070  2**0
                   CONTENTS, READONLY, DEBUGGING
- 10 .debug_abbrev 00002cd8  00000000  00000000  00036527  2**0
+ 10 .debug_abbrev 00002cd8  00000000  00000000  00036508  2**0
                   CONTENTS, READONLY, DEBUGGING
- 11 .debug_loc    00008eeb  00000000  00000000  000391ff  2**0
+ 11 .debug_loc    00008eeb  00000000  00000000  000391e0  2**0
                   CONTENTS, READONLY, DEBUGGING
- 12 .debug_aranges 00000c20  00000000  00000000  000420f0  2**3
+ 12 .debug_aranges 00000c20  00000000  00000000  000420d0  2**3
                   CONTENTS, READONLY, DEBUGGING
- 13 .debug_ranges 00000b70  00000000  00000000  00042d10  2**3
+ 13 .debug_ranges 00000b70  00000000  00000000  00042cf0  2**3
                   CONTENTS, READONLY, DEBUGGING
- 14 .debug_line   000063cc  00000000  00000000  00043880  2**0
+ 14 .debug_line   000063cc  00000000  00000000  00043860  2**0
                   CONTENTS, READONLY, DEBUGGING
- 15 .debug_str    00003ae7  00000000  00000000  00049c4c  2**0
+ 15 .debug_str    00003ac8  00000000  00000000  00049c2c  2**0
                   CONTENTS, READONLY, DEBUGGING
- 16 .comment      0000007c  00000000  00000000  0004d733  2**0
+ 16 .comment      0000007c  00000000  00000000  0004d6f4  2**0
                   CONTENTS, READONLY
- 17 .debug_frame  00001eec  00000000  00000000  0004d7b0  2**2
+ 17 .debug_frame  00001eec  00000000  00000000  0004d770  2**2
                   CONTENTS, READONLY, DEBUGGING
 
 Disassembly of section .text:
@@ -7046,7 +7046,7 @@ if(htim->Instance == htim17.Instance)
  8002808:	f7fd fd0a 	bl	8000220 <Display_event>
     break;
  800280c:	e7d1      	b.n	80027b2 <HAL_TIM_PeriodElapsedCallback+0xe>
-	 Display_event(9,10,11,12,3);
+	 Display_event(9,10,11,12,Blink_3_Digit);
  800280e:	2303      	movs	r3, #3
  8002810:	9300      	str	r3, [sp, #0]
  8002812:	3309      	adds	r3, #9
@@ -7056,7 +7056,7 @@ if(htim->Instance == htim17.Instance)
  800281a:	f7fd fd01 	bl	8000220 <Display_event>
 	 break;
  800281e:	e7c8      	b.n	80027b2 <HAL_TIM_PeriodElapsedCallback+0xe>
-	 Display_event(13,14,15,16,4);
+	 Display_event(13,14,15,16,Blink_4_Digit);
  8002820:	2304      	movs	r3, #4
  8002822:	9300      	str	r3, [sp, #0]
  8002824:	330c      	adds	r3, #12

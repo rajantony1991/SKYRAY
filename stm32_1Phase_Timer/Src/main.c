@@ -131,12 +131,11 @@ if(htim->Instance == htim17.Instance)
  {
 	 Display_event(9,10,11,12,Blink_3_Digit);
 	 break;
-
  }
  case 5 :
  {
 
-	 Display_event(13,14,15,16,4);
+	 Display_event(13,14,15,16,Blink_4_Digit);
 	 break;
  }
  case 6 :
