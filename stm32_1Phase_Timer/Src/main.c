@@ -44,7 +44,8 @@
 #include "stdbool.h"
 #include "eeprom.h"
 #include "Display.h"
-
+#include "math.h"
+#define VREFINT_CAL_ADDR (uint16_t*)((uint32_t)0x1FFFF7BA)
 
 
 /* USER CODE END Includes */
@@ -67,10 +68,16 @@ RTC_TimeTypeDef gTime;
 volatile bool Blink_digit = 0;
 volatile uint8_t D1,D2,D3,D4;
 volatile uint8_t MENU = 1 ;
-uint32_t  adc_buf[8], adc_val[8];
+uint32_t  adc_buf[8], adc_val[8],CT_Out;
 uint16_t VirtAddVarTab[NB_OF_VAR] = {0x1000,0x1001,0x1002,0x1003,0x1004,0x1005,0x1006,0x1008,0x1009,0x1010};
 uint16_t VarDataTab[NB_OF_VAR]    = {1,2,3,4,5,6,7,8,9,10,11};
 uint16_t VarValue = 0;
+uint16_t CT_Sample=1;
+int64_t V1=2000,V2;
+float Vdd[100];
+int32_t Total_Sample;
+float CT_Vout,CT1_amp=0,RMS_value=0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -178,15 +185,52 @@ if(htim->Instance == htim17.Instance)
 
 }
 
-//void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 
-//{
-// for (int i = 0; i<8;i++)
+{
+
+ for (int i = 0; i<8;i++)
+ {
+
+  adc_val[i]  = adc_buf[i]; //*calibration;  // store the values in adc_val from buffer
+
+ }
+
+CT_Sample++;
+
+//V1 =adc_val[0]-2000;
+//V1 = V1 + ((adc_val[0]-V1)/4095);
+V2 += adc_val[0]*adc_val[0];
+
+if(CT_Sample>=500)
+{
+
+	RMS_value = sqrt(V2/CT_Sample);
+	RMS_value = (3.3 *(*VREFINT_CAL_ADDR)*RMS_value)/(adc_val[7]*4095);
+	CT_Sample=1;
+	V1 = 0;
+	V2 = 0;
+}
+
+// if(CT_Sample<=100)
 // {
-//  adc_val[i] = adc_buf[i];  // store the values in adc_val from buffer
-// }
+ // CT_Sample++;
+//  Vdd[CT_Sample]      = (3.3 *(*VREFINT_CAL_ADDR)*adc_val[0])/(adc_val[7]*4095);
+ //}
+/* Total_Sample += adc_val[0];
+ CT_Sample++;
+ if(CT_Sample >= 500)
+ {
 
-//}
+	 CT_Out  = Total_Sample/CT_Sample;
+
+	 Vdd[0]      = (3.3 *(*VREFINT_CAL_ADDR)*CT_Out)/(adc_val[7]*4095);
+	 CT1_amp = Vdd[0]/0.030;
+	 Total_Sample = 0 ;
+	 CT_Sample    = 0 ;
+ }*/
+
+}
 /* USER CODE END 0 */
 
 /**
@@ -222,9 +266,9 @@ int main(void)
   MX_ADC_Init();
   MX_RTC_Init();
   MX_TIM17_Init();
-  EE_ReadVariable(VirtAddVarTab[9], &VarDataTab[9]);
-  VarValue  = VarDataTab[9];
   /* USER CODE BEGIN 2 */
+    EE_ReadVariable(VirtAddVarTab[9], &VarDataTab[9]);
+     VarValue  = VarDataTab[9];
     EE_WriteVariable(VirtAddVarTab[7], VarValue++);
     EE_WriteVariable(VirtAddVarTab[8], VarValue++);
     EE_WriteVariable(VirtAddVarTab[9], VarValue++);
@@ -354,7 +398,7 @@ static void MX_ADC_Init(void)
     /**Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion) 
     */
   hadc.Instance = ADC1;
-  hadc.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
+  hadc.Init.ClockPrescaler =ADC_CLOCK_SYNC_PCLK_DIV4; //ADC_CLOCK_ASYNC_DIV1;
   hadc.Init.Resolution = ADC_RESOLUTION_12B;
   hadc.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD;
@@ -366,7 +410,7 @@ static void MX_ADC_Init(void)
   hadc.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc.Init.DMAContinuousRequests = ENABLE;
-  hadc.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
+  hadc.Init.Overrun = ADC_OVR_DATA_PRESERVED;
   if (HAL_ADC_Init(&hadc) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -390,7 +434,7 @@ static void MX_ADC_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Configure for the selected ADC regular channel to be converted.
+    /**Configure for the selected ADC regular channel to be converted. 
     */
   sConfig.Channel = ADC_CHANNEL_2;
   if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
@@ -398,7 +442,7 @@ static void MX_ADC_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Configure for the selected ADC regular channel to be converted.
+    /**Configure for the selected ADC regular channel to be converted. 
     */
   sConfig.Channel = ADC_CHANNEL_3;
   if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
@@ -406,7 +450,7 @@ static void MX_ADC_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Configure for the selected ADC regular channel to be converted.
+    /**Configure for the selected ADC regular channel to be converted. 
     */
   sConfig.Channel = ADC_CHANNEL_4;
   if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
@@ -414,7 +458,7 @@ static void MX_ADC_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Configure for the selected ADC regular channel to be converted.
+    /**Configure for the selected ADC regular channel to be converted. 
     */
   sConfig.Channel = ADC_CHANNEL_5;
   if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
@@ -422,17 +466,17 @@ static void MX_ADC_Init(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Configure for the selected ADC regular channel to be converted.
+    /**Configure for the selected ADC regular channel to be converted. 
     */
-  sConfig.Channel = ADC_CHANNEL_6;
+  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
   if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Configure for the selected ADC regular channel to be converted.
+    /**Configure for the selected ADC regular channel to be converted. 
     */
-  sConfig.Channel = ADC_CHANNEL_7;
+  sConfig.Channel = ADC_CHANNEL_VREFINT;
   if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
