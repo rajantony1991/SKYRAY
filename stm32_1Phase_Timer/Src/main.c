@@ -68,18 +68,15 @@ RTC_TimeTypeDef gTime;
 volatile bool Blink_digit = 0;
 volatile uint8_t D1,D2,D3,D4;
 volatile uint8_t MENU = 1 ;
-uint32_t  adc_buf[8], adc_val[8],CT_Out;
+uint32_t  adc_val[8];
 uint16_t VirtAddVarTab[NB_OF_VAR] = {0x1000,0x1001,0x1002,0x1003,0x1004,0x1005,0x1006,0x1008,0x1009,0x1010};
 uint16_t VarDataTab[NB_OF_VAR]    = {1,2,3,4,5,6,7,8,9,10,11};
 uint16_t VarValue = 0;
 uint16_t CT_Sample=1;
-int64_t V1=2000,V2;
-float Vdd[100];
+int32_t V1,V2;
 int32_t Total_Sample;
-float CT_Vout,CT1_amp=0,RMS_value=0;
-
+float CT1_amp=0,RMS_value=0;
 /* USER CODE END PV */
-
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
@@ -189,46 +186,34 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 
 {
 
+/*
  for (int i = 0; i<8;i++)
  {
 
-  adc_val[i]  = adc_buf[i]; //*calibration;  // store the values in adc_val from buffer
+  //adc_val[i]  = adc_buf[i]; //*calibration;  // store the values in adc_val from buffer
 
  }
+*/
 
 CT_Sample++;
-
-//V1 =adc_val[0]-2000;
-//V1 = V1 + ((adc_val[0]-V1)/4095);
-V2 += adc_val[0]*adc_val[0];
-
-if(CT_Sample>=500)
+V1 += adc_val[7];
+V2 += adc_val[0];
+if(CT_Sample>=1000)
 {
 
-	RMS_value = sqrt(V2/CT_Sample);
-	RMS_value = (3.3 *(*VREFINT_CAL_ADDR)*RMS_value)/(adc_val[7]*4095);
+	RMS_value = (V2/CT_Sample);
+	V1        = (V1/CT_Sample);
+	RMS_value = (3.3 *(*VREFINT_CAL_ADDR)*RMS_value)/(V1*4095);
+	CT1_amp = RMS_value /0.047;
+	if(CT1_amp<20.0&&CT1_amp>0.1)
+	{
+
+		CT1_amp +=0.7;
+	}
 	CT_Sample=1;
 	V1 = 0;
 	V2 = 0;
 }
-
-// if(CT_Sample<=100)
-// {
- // CT_Sample++;
-//  Vdd[CT_Sample]      = (3.3 *(*VREFINT_CAL_ADDR)*adc_val[0])/(adc_val[7]*4095);
- //}
-/* Total_Sample += adc_val[0];
- CT_Sample++;
- if(CT_Sample >= 500)
- {
-
-	 CT_Out  = Total_Sample/CT_Sample;
-
-	 Vdd[0]      = (3.3 *(*VREFINT_CAL_ADDR)*CT_Out)/(adc_val[7]*4095);
-	 CT1_amp = Vdd[0]/0.030;
-	 Total_Sample = 0 ;
-	 CT_Sample    = 0 ;
- }*/
 
 }
 /* USER CODE END 0 */
@@ -278,7 +263,7 @@ int main(void)
     EE_ReadVariable(VirtAddVarTab[8], &VarDataTab[8]);
     EE_ReadVariable(VirtAddVarTab[9], &VarDataTab[9]);
   HAL_TIM_Base_Start_IT(&htim17);
-  HAL_ADC_Start_DMA (&hadc, (uint32_t *)adc_buf, 8);
+  HAL_ADC_Start_DMA (&hadc, (uint32_t *)adc_val, 8);
 
   /* USER CODE END 2 */
 
@@ -399,7 +384,7 @@ static void MX_ADC_Init(void)
     */
   hadc.Instance = ADC1;
   hadc.Init.ClockPrescaler =ADC_CLOCK_SYNC_PCLK_DIV4; //ADC_CLOCK_ASYNC_DIV1;
-  hadc.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc.Init.Resolution = ADC_RESOLUTION_10B;
   hadc.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD;
   hadc.Init.EOCSelection = ADC_EOC_SEQ_CONV;

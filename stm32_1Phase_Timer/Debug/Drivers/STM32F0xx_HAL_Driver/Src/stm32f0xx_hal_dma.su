@@ -1,5 +1,3 @@
-stm32f0xx_hal_dma.c:830:13:DMA_SetConfig	16	static
-stm32f0xx_hal_dma.c:864:13:DMA_CalcBaseAndBitshift	8	static
 stm32f0xx_hal_dma.c:154:19:HAL_DMA_Init	16	static
 stm32f0xx_hal_dma.c:222:19:HAL_DMA_DeInit	16	static
 stm32f0xx_hal_dma.c:298:19:HAL_DMA_Start	16	static
