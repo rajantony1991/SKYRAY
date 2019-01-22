@@ -10,7 +10,7 @@
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
-  * COPYRIGHT(c) 2018 STMicroelectronics
+  * COPYRIGHT(c) 2019 STMicroelectronics
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -49,14 +49,24 @@
 
 /* Private define ------------------------------------------------------------*/
 
+#define SW_bypass_Pin GPIO_PIN_0
+#define SW_bypass_GPIO_Port GPIOF
+#define SW_auto_man_Pin GPIO_PIN_1
+#define SW_auto_man_GPIO_Port GPIOF
+#define Low_level_Pin GPIO_PIN_6
+#define Low_level_GPIO_Port GPIOA
+#define High_level_Pin GPIO_PIN_7
+#define High_level_GPIO_Port GPIOA
 #define RELAY_1_Pin GPIO_PIN_0
 #define RELAY_1_GPIO_Port GPIOB
 #define RELAY_2_Pin GPIO_PIN_1
 #define RELAY_2_GPIO_Port GPIOB
 #define RELAY_3_Pin GPIO_PIN_2
 #define RELAY_3_GPIO_Port GPIOB
-#define BUZZER_Pin GPIO_PIN_10
-#define BUZZER_GPIO_Port GPIOB
+#define Manual_led_Pin GPIO_PIN_10
+#define Manual_led_GPIO_Port GPIOB
+#define Auto_led_Pin GPIO_PIN_11
+#define Auto_led_GPIO_Port GPIOB
 #define DB_Pin GPIO_PIN_12
 #define DB_GPIO_Port GPIOB
 #define G_Pin GPIO_PIN_13
@@ -87,6 +97,11 @@
 #define SW_up_GPIO_Port GPIOB
 #define SW_menu_Pin GPIO_PIN_5
 #define SW_menu_GPIO_Port GPIOB
+#define Buzzer_Pin GPIO_PIN_8
+#define Buzzer_GPIO_Port GPIOB
+#define Power_loss_Pin GPIO_PIN_9
+#define Power_loss_GPIO_Port GPIOB
+#define Power_loss_EXTI_IRQn EXTI4_15_IRQn
 
 /* ########################## Assert Selection ############################## */
 /**

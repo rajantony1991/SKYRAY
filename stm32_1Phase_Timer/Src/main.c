@@ -10,7 +10,7 @@
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
-  * COPYRIGHT(c) 2018 STMicroelectronics
+  * COPYRIGHT(c) 2019 STMicroelectronics
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -73,10 +73,11 @@ uint16_t VirtAddVarTab[NB_OF_VAR] = {0x1000,0x1001,0x1002,0x1003,0x1004,0x1005,0
 uint16_t VarDataTab[NB_OF_VAR]    = {1,2,3,4,5,6,7,8,9,10,11};
 uint16_t VarValue = 0;
 uint16_t CT_Sample=1;
-int32_t V1,V2;
+int32_t V1,V2,V3;
 int32_t Total_Sample;
-float CT1_amp=0,RMS_value=0;
+float CT1_amp=0,Voltage,Current_rms=0,Voltage_rms=0;
 /* USER CODE END PV */
+
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
@@ -96,7 +97,6 @@ D1 = gTime.Minutes/10;
 D2 = gTime.Minutes%10;
 D3 = gTime.Seconds/10;
 D4 = gTime.Seconds%10;
-
 }
 
 
@@ -108,7 +108,19 @@ void get_time(void)
   /* Get the RTC current Date */
   HAL_RTC_GetDate(&hrtc, &gDate, RTC_FORMAT_BIN);
 }
-HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  if (GPIO_Pin == Power_loss_Pin)
+  {
+    /* Toggle LED3 */
+	  HAL_GPIO_TogglePin(GPIOB ,Buzzer_Pin);
+
+  }
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 
 if(htim->Instance == htim17.Instance)
@@ -196,23 +208,32 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 */
 
 CT_Sample++;
+
 V1 += adc_val[7];
 V2 += adc_val[0];
+V3 += adc_val[1];
+
 if(CT_Sample>=1000)
 {
 
-	RMS_value = (V2/CT_Sample);
-	V1        = (V1/CT_Sample);
-	RMS_value = (3.3 *(*VREFINT_CAL_ADDR)*RMS_value)/(V1*4095);
-	CT1_amp = RMS_value /0.047;
+	Current_rms = (V2/CT_Sample);
+	Voltage_rms = (V3/CT_Sample);
+	V1          = (V1/CT_Sample);
+
+
+	Current_rms =  (3.3 *(*VREFINT_CAL_ADDR)*Current_rms)/(V1*4095);
+	Voltage_rms =  (3.3 *(*VREFINT_CAL_ADDR)*Voltage_rms)/(V1*4095);
+	CT1_amp     =  Current_rms /0.047;
+	Voltage     =  Voltage_rms*100;
+	Voltage     += 6.0;
 	if(CT1_amp<20.0&&CT1_amp>0.1)
 	{
-
 		CT1_amp +=0.7;
 	}
 	CT_Sample=1;
 	V1 = 0;
 	V2 = 0;
+	V3 = 0;
 }
 
 }
@@ -301,9 +322,11 @@ int main(void)
 		}
 		if(HAL_GPIO_ReadPin(GPIOB ,SW_down_Pin)==0)
 		{
-			HAL_GPIO_TogglePin(GPIOB ,BUZZER_Pin);
+			//HAL_GPIO_TogglePin(GPIOB ,Buzzer_Pin);
 
 		}
+		HAL_GPIO_TogglePin(GPIOA ,GPIO_PIN_13);
+		HAL_Delay(10);
 
   }
   /* USER CODE END WHILE */
@@ -326,12 +349,9 @@ void SystemClock_Config(void)
 
     /**Initializes the CPU, AHB and APB busses clocks 
     */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_HSI14
-                              |RCC_OSCILLATORTYPE_LSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSI14State = RCC_HSI14_ON;
   RCC_OscInitStruct.HSICalibrationValue = 16;
-  RCC_OscInitStruct.HSI14CalibrationValue = 16;
   RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
@@ -383,7 +403,7 @@ static void MX_ADC_Init(void)
     /**Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion) 
     */
   hadc.Instance = ADC1;
-  hadc.Init.ClockPrescaler =ADC_CLOCK_SYNC_PCLK_DIV4; //ADC_CLOCK_ASYNC_DIV1;
+  hadc.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
   hadc.Init.Resolution = ADC_RESOLUTION_10B;
   hadc.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD;
@@ -566,13 +586,15 @@ static void MX_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct;
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOF_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, RELAY_1_Pin|RELAY_2_Pin|RELAY_3_Pin|BUZZER_Pin 
-                          |DB_Pin|G_Pin|F_Pin|E_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, RELAY_1_Pin|RELAY_2_Pin|RELAY_3_Pin|Manual_led_Pin 
+                          |Auto_led_Pin|DB_Pin|G_Pin|F_Pin 
+                          |E_Pin|Buzzer_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, LED4_Pin|LED3_Pin|LED2_Pin|LED1_Pin 
@@ -581,17 +603,31 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOF, C_Pin|B_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : RELAY_1_Pin RELAY_2_Pin RELAY_3_Pin */
-  GPIO_InitStruct.Pin = RELAY_1_Pin|RELAY_2_Pin|RELAY_3_Pin;
+  /*Configure GPIO pins : SW_bypass_Pin SW_auto_man_Pin */
+  GPIO_InitStruct.Pin = SW_bypass_Pin|SW_auto_man_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : Low_level_Pin High_level_Pin */
+  GPIO_InitStruct.Pin = Low_level_Pin|High_level_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : RELAY_1_Pin RELAY_2_Pin RELAY_3_Pin Manual_led_Pin 
+                           Auto_led_Pin */
+  GPIO_InitStruct.Pin = RELAY_1_Pin|RELAY_2_Pin|RELAY_3_Pin|Manual_led_Pin 
+                          |Auto_led_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : BUZZER_Pin DB_Pin G_Pin F_Pin 
-                           E_Pin */
-  GPIO_InitStruct.Pin = BUZZER_Pin|DB_Pin|G_Pin|F_Pin 
-                          |E_Pin;
+  /*Configure GPIO pins : DB_Pin G_Pin F_Pin E_Pin 
+                           Buzzer_Pin */
+  GPIO_InitStruct.Pin = DB_Pin|G_Pin|F_Pin|E_Pin 
+                          |Buzzer_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -618,6 +654,16 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : Power_loss_Pin */
+  GPIO_InitStruct.Pin = Power_loss_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(Power_loss_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI4_15_IRQn, 3, 0);
+  HAL_NVIC_EnableIRQ(EXTI4_15_IRQn);
 
 }
 

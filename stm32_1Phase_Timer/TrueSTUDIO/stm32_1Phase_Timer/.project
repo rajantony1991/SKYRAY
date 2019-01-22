@@ -220,6 +220,14 @@
 			<location>PARENT-2-PROJECT_LOC//Src/system_stm32f0xx.c</location>
 		</link>
   <link>
+      
+      <type>2</type>
+      
+    </link><link>
+      
+      <type>2</type>
+      
+    </link><link>
       <name>Application</name>
       <type>2</type>
       <locationURI>virtual:/virtual</locationURI>
